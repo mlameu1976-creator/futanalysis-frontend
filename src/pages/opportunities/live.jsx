@@ -1,0 +1,423 @@
+// src/pages/opportunities/live.jsx
+import AffiliateCTA from "../../components/AffiliateCTA";
+import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
+import Head from "next/head";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const T = {
+  bg: "#080C10", surface: "#0E1419", surfaceHi: "#141B22",
+  border: "#1E2830", yellow: "#F5C518", red: "#E83B3B",
+  green: "#2ECC71", blue: "#3B82F6", orange: "#FF8C00",
+  purple: "#8B5CF6", text: "#EDF2F7", textMid: "#94A3B8",
+  textDim: "#4A5568", font: "'JetBrains Mono', 'Fira Code', monospace",
+};
+const MARKET_COLOR = {
+  "GOAL_HT":   "#F5C518",
+  "OVER_1.5":  "#2ECC71",
+  "OVER_2.5":  "#2ECC71",
+  "UNDER_2.5": "#3B82F6",
+  "BTTS":      "#8B5CF6",
+  "HOME_WIN":  "#FF8C00",
+  "AWAY_WIN":  "#E83B3B",
+};
+const MARKET_LABEL = {
+  "GOAL_HT":   "Gol HT",
+  "OVER_1.5":  "Over 1.5",
+  "OVER_2.5":  "Over 2.5",
+  "UNDER_2.5": "Under 2.5",
+  "BTTS":      "BTTS",
+  "HOME_WIN":  "Casa vence",
+  "AWAY_WIN":  "Fora vence",
+};
+
+function isHot(match) {
+  const maxDanger = Math.max(match.home_danger || 0, match.away_danger || 0);
+  const totalXg   = (match.home_xg || 0) + (match.away_xg || 0);
+  return maxDanger >= 5 || totalXg >= 1.5;
+}
+
+function probColor(p) {
+  if (p >= 75) return T.green;
+  if (p >= 65) return T.yellow;
+  if (p >= 55) return T.orange;
+  return T.red;
+}
+
+function ProbBar({ value }) {
+  return (
+    <div style={{ width: "100%", background: T.border, borderRadius: "4px", height: "4px", overflow: "hidden" }}>
+      <div style={{ width: `${Math.min(value, 100)}%`, height: "100%", background: probColor(value), borderRadius: "4px", transition: "width 0.5s" }} />
+    </div>
+  );
+}
+
+function LiveBadge({ minute, status }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+      <span style={{
+        width: "7px", height: "7px", borderRadius: "50%",
+        background: T.red, display: "inline-block",
+        boxShadow: `0 0 6px ${T.red}`,
+        animation: "pulse 1.2s ease-in-out infinite",
+      }} />
+      <span style={{ fontSize: "0.68rem", color: T.red, fontWeight: 700 }}>
+        {minute ? `${minute}'` : ""} {status}
+      </span>
+    </div>
+  );
+}
+
+function Timeline({ match }) {
+  const events = [];
+
+  // gols
+  const totalGoals = (match.home_score || 0) + (match.away_score || 0);
+  if (totalGoals > 0) {
+    events.push({ icon: "⚽", text: `${match.home_score}×${match.away_score}`, color: T.green, type: "score" });
+  }
+
+  // cartões
+  const totalYellow = (match.home_yellow || 0) + (match.away_yellow || 0);
+  const totalRed    = (match.home_red || 0) + (match.away_red || 0);
+  if (totalYellow > 0) events.push({ icon: "🟨", text: `${totalYellow}`, color: "#F5C518", type: "card" });
+  if (totalRed > 0)    events.push({ icon: "🟥", text: `${totalRed}`, color: T.red, type: "card" });
+
+  // escanteios
+  const totalCorners = (match.home_corners || 0) + (match.away_corners || 0);
+  if (totalCorners > 0) events.push({ icon: "⛳", text: `${match.home_corners}×${match.away_corners}`, color: "#14B8A6", type: "corner" });
+
+  // xG
+  const totalXg = (match.home_xg || 0) + (match.away_xg || 0);
+  if (totalXg > 0) events.push({ icon: "📊", text: `xG ${totalXg.toFixed(2)}`, color: T.blue, type: "xg" });
+
+  // pressão
+  const maxDanger = Math.max(match.home_danger || 0, match.away_danger || 0);
+  if (maxDanger >= 5) {
+    const pressTeam = (match.home_danger || 0) >= (match.away_danger || 0) ? match.home_team.split(" ")[0] : match.away_team.split(" ")[0];
+    events.push({ icon: "🔥", text: `${pressTeam} pressionando`, color: T.red, type: "danger" });
+  }
+
+  if (events.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.6rem", padding: "0.4rem 0.6rem", background: T.surfaceHi, borderRadius: "6px" }}>
+      {events.map((e, i) => (
+        <span key={i} style={{ fontSize: "0.68rem", color: e.color, display: "flex", alignItems: "center", gap: "0.2rem", padding: "2px 6px", background: e.color + "15", borderRadius: "12px", border: `1px solid ${e.color}30` }}>
+          {e.icon} {e.text}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function MatchCard({ match, index = 0 }) {
+  const hot = isHot(match);
+  const dangerColor = (d) => d >= 7 ? "#E83B3B" : d >= 4 ? "#FF8C00" : d >= 2 ? "#F5C518" : T.textDim;
+
+  return (
+    <div style={{
+      background: T.surface,
+      border: `1px solid ${hot ? T.red + "88" : T.border}`,
+      borderRadius: "10px", overflow: "hidden",
+      boxShadow: hot ? `0 0 12px ${T.red}22` : "none",
+      animation: hot ? "hotPulse 2s ease-in-out infinite" : "none",
+      transition: "border-color 0.2s, transform 0.2s",
+    }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; }}
+    >
+      <div style={{ height: "3px", background: hot ? `linear-gradient(90deg, ${T.red}, ${T.orange})` : T.red }} />
+      <div style={{ padding: "1rem" }}>
+
+        {/* Cabeçalho */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+          <span style={{ fontSize: "0.65rem", color: T.textDim, textTransform: "uppercase" }}>
+            {match.country} · {match.league}
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            {hot && (
+              <span style={{ fontSize: "0.6rem", background: T.red + "22", color: T.red, border: `1px solid ${T.red}44`, borderRadius: "12px", padding: "1px 6px", fontWeight: 700 }}>
+                🔥 QUENTE
+              </span>
+            )}
+            <LiveBadge minute={match.minute} status={match.status} />
+          </div>
+        </div>
+
+        {/* Placar */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "0.5rem", margin: "0.6rem 0" }}>
+          <div style={{ fontWeight: 700, fontSize: "0.85rem", color: T.text }}>{match.home_team}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: T.surfaceHi, borderRadius: "8px", padding: "0.3rem 0.8rem", fontSize: "1.1rem", fontWeight: 700, color: T.text }}>
+            <span>{match.home_score}</span>
+            <span style={{ color: T.textDim, fontSize: "0.8rem" }}>×</span>
+            <span>{match.away_score}</span>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: "0.85rem", color: T.text, textAlign: "right" }}>{match.away_team}</div>
+        </div>
+
+        {/* Timeline de eventos */}
+        <Timeline match={match} />
+
+        {/* Índice de Perigo */}
+        {(match.home_danger > 0 || match.away_danger > 0) && (() => {
+          const total = (match.home_danger || 0) + (match.away_danger || 0);
+          const homePct = total > 0 ? ((match.home_danger || 0) / total * 100) : 50;
+          return (
+            <div style={{ marginBottom: "0.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                <span style={{ fontSize: "0.65rem", fontWeight: 700, color: dangerColor(match.home_danger) }}>
+                  ⚡ {match.home_danger}/10
+                </span>
+                <span style={{ fontSize: "0.6rem", color: T.textDim }}>Índice de Perigo</span>
+                <span style={{ fontSize: "0.65rem", fontWeight: 700, color: dangerColor(match.away_danger) }}>
+                  {match.away_danger}/10 ⚡
+                </span>
+              </div>
+              <div style={{ height: "8px", borderRadius: "4px", overflow: "hidden", background: T.border, display: "flex" }}>
+                <div style={{ width: `${homePct}%`, background: dangerColor(match.home_danger), transition: "width 0.5s" }} />
+                <div style={{ flex: 1, background: dangerColor(match.away_danger) }} />
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Stats grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.3rem", marginBottom: "0.4rem" }}>
+          <div style={{ background: T.surfaceHi, borderRadius: "6px", padding: "0.35rem 0.5rem", textAlign: "center" }}>
+            <div style={{ fontSize: "0.6rem", color: T.textDim, marginBottom: "2px" }}>xG</div>
+            <div style={{ fontSize: "0.75rem", color: T.green, fontWeight: 700 }}>
+              {match.home_xg?.toFixed(2)} <span style={{ color: T.textDim }}>×</span> {match.away_xg?.toFixed(2)}
+            </div>
+          </div>
+          <div style={{ background: T.surfaceHi, borderRadius: "6px", padding: "0.35rem 0.5rem", textAlign: "center" }}>
+            <div style={{ fontSize: "0.6rem", color: T.textDim, marginBottom: "2px" }}>Posse</div>
+            <div style={{ fontSize: "0.75rem", color: T.blue, fontWeight: 700 }}>
+              {match.home_possession?.toFixed(0)}% <span style={{ color: T.textDim }}>×</span> {match.away_possession?.toFixed(0)}%
+            </div>
+          </div>
+          <div style={{ background: T.surfaceHi, borderRadius: "6px", padding: "0.35rem 0.5rem", textAlign: "center" }}>
+            <div style={{ fontSize: "0.6rem", color: T.textDim, marginBottom: "2px" }}>Chutes (total/gol)</div>
+            <div style={{ fontSize: "0.72rem", color: T.yellow, fontWeight: 700 }}>
+              {match.home_shots_total || 0}/{match.home_shots_on}
+              <span style={{ color: T.textDim }}> × </span>
+              {match.away_shots_total || 0}/{match.away_shots_on}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "0.3rem", marginBottom: "0.6rem" }}>
+          <div style={{ background: T.surfaceHi, borderRadius: "6px", padding: "0.35rem 0.5rem", textAlign: "center" }}>
+            <div style={{ fontSize: "0.6rem", color: T.textDim, marginBottom: "2px" }}>Na área</div>
+            <div style={{ fontSize: "0.72rem", color: T.orange, fontWeight: 700 }}>
+              {match.home_shots_box || 0} <span style={{ color: T.textDim }}>×</span> {match.away_shots_box || 0}
+            </div>
+          </div>
+          <div style={{ background: T.surfaceHi, borderRadius: "6px", padding: "0.35rem 0.5rem", textAlign: "center" }}>
+            <div style={{ fontSize: "0.6rem", color: T.textDim, marginBottom: "2px" }}>Cartões</div>
+            <div style={{ fontSize: "0.72rem", fontWeight: 700 }}>
+              <span style={{ color: "#F5C518" }}>{match.home_yellow}🟨</span>
+              {match.home_red > 0 && <span style={{ color: T.red }}>{match.home_red}🟥</span>}
+              <span style={{ color: T.textDim }}> × </span>
+              <span style={{ color: "#F5C518" }}>{match.away_yellow}🟨</span>
+              {match.away_red > 0 && <span style={{ color: T.red }}>{match.away_red}🟥</span>}
+            </div>
+          </div>
+          <div style={{ background: T.surfaceHi, borderRadius: "6px", padding: "0.35rem 0.5rem", textAlign: "center" }}>
+            <div style={{ fontSize: "0.6rem", color: T.textDim, marginBottom: "2px" }}>Faltas</div>
+            <div style={{ fontSize: "0.72rem", color: T.textMid, fontWeight: 700 }}>
+              {match.home_fouls} <span style={{ color: T.textDim }}>×</span> {match.away_fouls}
+            </div>
+          </div>
+          <div style={{ background: T.surfaceHi, borderRadius: "6px", padding: "0.35rem 0.5rem", textAlign: "center" }}>
+            <div style={{ fontSize: "0.6rem", color: T.textDim, marginBottom: "2px" }}>Escanteios</div>
+            <div style={{ fontSize: "0.72rem", color: "#14B8A6", fontWeight: 700 }}>
+              {match.home_corners} <span style={{ color: T.textDim }}>×</span> {match.away_corners}
+            </div>
+          </div>
+        </div>
+
+        {/* Oportunidades */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginTop: "0.8rem" }}>
+          {match.opportunities.map((opp, i) => {
+            const color = MARKET_COLOR[opp.market] || T.textMid;
+            const label = MARKET_LABEL[opp.market] || opp.market;
+            const isGuaranteed = opp.probability >= 100;
+            return (
+              <div key={i} style={{ background: T.surfaceHi, borderRadius: "8px", padding: "0.5rem 0.7rem", border: `1px solid ${isGuaranteed ? color + "44" : T.border}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.3rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                    <span style={{ fontSize: "0.65rem", padding: "2px 8px", background: color + "18", color, border: `1px solid ${color}33`, borderRadius: "20px" }}>{label}</span>
+                    {isGuaranteed && <span style={{ fontSize: "0.6rem", color: T.green, fontWeight: 700 }}>✓ GARANTIDO</span>}
+                  </div>
+                  <span style={{ fontSize: "0.95rem", fontWeight: 700, color: probColor(opp.probability) }}>
+                    {opp.probability.toFixed(1)}%
+                  </span>
+                </div>
+                <ProbBar value={opp.probability} />
+                {(opp.status || opp.detail) && (
+                  <div style={{ marginTop: "0.3rem", display: "flex", justifyContent: "space-between" }}>
+                    {opp.status && <span style={{ fontSize: "0.62rem", color: isGuaranteed ? T.green : T.yellow }}>{opp.status}</span>}
+                    {opp.detail && <span style={{ fontSize: "0.6rem", color: T.textDim }}>{opp.detail}</span>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <AffiliateCTA index={index} />
+      </div>
+    </div>
+  );
+}
+
+function Countdown({ seconds }) {
+  return <span style={{ fontSize: "0.68rem", color: T.textDim }}>Atualiza em {seconds}s</span>;
+}
+
+export default function LiveOpportunities() {
+  const [matches,      setMatches]      = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState(null);
+  const [minProb,      setMinProb]      = useState("50");
+  const [leagueFilter, setLeagueFilter] = useState("all");
+  const [quickFilter,  setQuickFilter]  = useState("all");
+  const [countdown,    setCountdown]    = useState(60);
+  const [lastUpdate,   setLastUpdate]   = useState(null);
+  const timerRef = useRef(null);
+  const countRef = useRef(null);
+
+  async function fetchData(prob = minProb) {
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch(`${API}/live-opportunities?min_probability=${prob}`);
+      if (!res.ok) throw new Error(`Erro ${res.status}`);
+      const json = await res.json();
+      // ordena: quentes primeiro
+      const sorted = (json.matches || []).sort((a, b) => {
+        const aHot = isHot(a) ? 1 : 0;
+        const bHot = isHot(b) ? 1 : 0;
+        if (bHot !== aHot) return bHot - aHot;
+        return Math.max(b.home_danger || 0, b.away_danger || 0) - Math.max(a.home_danger || 0, a.away_danger || 0);
+      });
+      setMatches(sorted);
+      setLastUpdate(new Date());
+      setCountdown(60);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchData();
+    timerRef.current = setInterval(() => fetchData(), 60000);
+    countRef.current = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
+    return () => { clearInterval(timerRef.current); clearInterval(countRef.current); };
+  }, []);
+
+  function handleProbChange(val) { setMinProb(val); fetchData(val); }
+
+  const leagues = [...new Set(matches.map(m => m.league).filter(Boolean))].sort();
+
+  // aplica filtros
+  let filtered = leagueFilter === "all" ? matches : matches.filter(m => m.league === leagueFilter);
+  if (quickFilter === "hot")   filtered = filtered.filter(m => isHot(m));
+  if (quickFilter === "zero")  filtered = filtered.filter(m => m.home_score === 0 && m.away_score === 0);
+  if (quickFilter === "2nd")   filtered = filtered.filter(m => m.status === "2º Tempo");
+  if (quickFilter === "1st")   filtered = filtered.filter(m => m.status === "1º Tempo");
+
+  const inp  = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: "6px", color: T.text, padding: "0.45rem 0.7rem", fontSize: "0.78rem", fontFamily: T.font, outline: "none" };
+  const btnR = { background: T.red, color: "#fff", border: "none", borderRadius: "6px", padding: "0.45rem 1.1rem", fontWeight: 700, fontSize: "0.78rem", fontFamily: T.font, cursor: "pointer" };
+
+  const QUICK_FILTERS = [
+    { key: "all",  label: "Todos" },
+    { key: "hot",  label: "🔥 Quentes" },
+    { key: "zero", label: "0×0" },
+    { key: "1st",  label: "1º Tempo" },
+    { key: "2nd",  label: "2º Tempo" },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: T.font, padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
+      <Head>
+        <title>Ao Vivo — FutAnalysis | Oportunidades em Tempo Real</title>
+        <meta name="description" content="Acompanhe oportunidades de futebol ao vivo com índice de perigo, xG e timeline de eventos. Filtros por mercado e jogos quentes em tempo real." />
+        <meta name="robots" content="noindex, follow" />
+        <link rel="canonical" href="https://futanalysis.com.br/opportunities/live" />
+      </Head>
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes hotPulse { 0%, 100% { box-shadow: 0 0 12px #E83B3B22; } 50% { box-shadow: 0 0 20px #E83B3B44; } }
+      `}</style>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", paddingBottom: "1rem", borderBottom: `1px solid ${T.border}` }}>
+        <Link href="/opportunities" style={{ color: T.textMid, textDecoration: "none", fontSize: "0.78rem" }}>← oportunidades</Link>
+        <Link href="/analises/futebol" style={{ color: T.green, textDecoration: "none", fontSize: "0.72rem", background: T.green + "18", border: `1px solid ${T.green}33`, borderRadius: "20px", padding: "3px 10px" }}>📋 análises futebol →</Link>
+        <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.red }}>🔴 Ao Vivo</h1>
+        <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: T.textMid }}>
+          {filtered.length} {filtered.length === 1 ? "jogo" : "jogos"}
+        </span>
+      </div>
+
+      {/* Filtros rápidos */}
+      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+        {QUICK_FILTERS.map(f => (
+          <button key={f.key} onClick={() => setQuickFilter(f.key)} style={{
+            background: quickFilter === f.key ? T.red : T.surface,
+            color: quickFilter === f.key ? "#fff" : T.textMid,
+            border: `1px solid ${quickFilter === f.key ? T.red : T.border}`,
+            borderRadius: "20px", padding: "0.3rem 0.8rem",
+            fontSize: "0.72rem", fontFamily: T.font, cursor: "pointer",
+            fontWeight: quickFilter === f.key ? 700 : 400,
+          }}>{f.label}</button>
+        ))}
+      </div>
+
+      {/* Filtros secundários */}
+      <div style={{ display: "flex", gap: "0.6rem", marginBottom: "1.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div>
+          <div style={{ fontSize: "0.62rem", color: T.textMid, marginBottom: "0.25rem", textTransform: "uppercase" }}>Prob. mín.</div>
+          <select style={inp} value={minProb} onChange={e => handleProbChange(e.target.value)}>
+            <option value="50">50%+</option>
+            <option value="55">55%+</option>
+            <option value="60">60%+</option>
+            <option value="70">70%+</option>
+          </select>
+        </div>
+        <div>
+          <div style={{ fontSize: "0.62rem", color: T.textMid, marginBottom: "0.25rem", textTransform: "uppercase" }}>Liga</div>
+          <select style={inp} value={leagueFilter} onChange={e => setLeagueFilter(e.target.value)}>
+            <option value="all">Todas</option>
+            {leagues.map(l => <option key={l}>{l}</option>)}
+          </select>
+        </div>
+        <button style={btnR} onClick={() => fetchData()}>Atualizar</button>
+        <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.2rem" }}>
+          <Countdown seconds={countdown} />
+          {lastUpdate && (
+            <span style={{ fontSize: "0.62rem", color: T.textDim }}>
+              {lastUpdate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {error   && <div style={{ color: T.red, fontSize: "0.82rem", marginBottom: "1rem" }}>⚠ {error}</div>}
+      {loading && <div style={{ color: T.textMid, fontSize: "0.82rem", marginBottom: "1rem" }}>Carregando…</div>}
+
+      {!loading && filtered.length === 0 && (
+        <div style={{ textAlign: "center", color: T.textMid, padding: "4rem", fontSize: "0.85rem", border: `1px solid ${T.border}`, borderRadius: "10px" }}>
+          <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>🔴</div>
+          Nenhum jogo ao vivo no momento.
+          <div style={{ fontSize: "0.72rem", color: T.textDim, marginTop: "0.5rem" }}>Atualização automática a cada 60 segundos.</div>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>
+        {filtered.map((m, i) => <MatchCard key={m.fixture_id} match={m} index={(4 + i) % 10} />)}
+      </div>
+    </div>
+  );
+}

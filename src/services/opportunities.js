@@ -1,16 +1,6 @@
-NEXT_PUBLIC_API_URL= "http://127.0.0.1:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://futanalysis.com.br/api";
 
-export async function getOpportunities(market = "all") {
-  const endpoint =
-    market === "all"
-      ? "/opportunities"
-      : `/opportunities/${market}`;
-
-  const res = await fetch(`${API_URL}${endpoint}`);
-
-  if (!res.ok) {
-    throw new Error("Erro ao buscar oportunidades");
-  }
-
+export async function getOpportunities() {
+  const res = await fetch(`${API_URL}/opportunities`);
   return res.json();
 }

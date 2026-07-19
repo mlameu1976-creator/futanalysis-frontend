@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "br.com.futanalysis.twa",
+        "sha256_cert_fingerprints": ["67:BE:C1:48:D5:8B:14:0F:5A:A3:2E:D4:D0:88:31:E3:04:97:69:71:63:4D:82:FC:0E:CD:06:49:0B:28:18:5B"]
+      }
+    }]

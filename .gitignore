@@ -1,3 +1,8 @@
 node_modules/
 .next/
-.env.local
+.env.local*.bak
+*.bak2
+*.bak3
+*.bkp
+*.bkp2
+*.pre-revert-bak

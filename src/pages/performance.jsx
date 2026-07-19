@@ -13,7 +13,7 @@ export default function Performance() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:8000/internal/performance")
+    fetch("https://futanalysis.com.br/api/internal/performance")
       .then((res) => res.json())
       .then((json) => setData(json))
       .catch((err) => console.error(err));

@@ -4,7 +4,7 @@ export default function Cards() {
   const [data, setData] = useState([])
 
   useEffect(() => {
-    fetch("http://localhost:8000/cards")
+    fetch("https://futanalysis.com.br/api/cards")
       .then(res => res.json())
       .then(setData)
   }, [])

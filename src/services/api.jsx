@@ -1,16 +1,13 @@
-NEXT_PUBLIC_API_URL= "http://127.0.0.1:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://futanalysis.com.br/api";
 
 export async function getOpportunities() {
-  const response = await fetch(`${API_URL}/opportunities`);
-  const data = await response.json();
-  return data;
+  const res = await fetch(`${API_URL}/opportunities`);
+  return res.json();
 }
 
 export async function getRankings() {
-  const response = await fetch(`${API_URL}/opportunities`);
-  const data = await response.json();
-
+  const res = await fetch(`${API_URL}/opportunities`);
+  const data = await res.json();
   const sorted = data.sort((a, b) => b.probability - a.probability);
-
   return sorted.slice(0, 20);
 }
