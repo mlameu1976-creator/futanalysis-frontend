@@ -6,3 +6,4 @@ node_modules/
 *.bkp
 *.bkp2
 *.pre-revert-bak
+.env.local
