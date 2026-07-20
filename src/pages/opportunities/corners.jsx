@@ -29,6 +29,21 @@ const MARKET_COLOR = {
   "UNDER 10.5 CORNERS": "#2ECC71",
 };
 
+export async function getStaticProps() {
+  let initialData = [];
+  try {
+    const params = new URLSearchParams({ date: "all", min_probability: "55", scope: "corners", limit: 100 });
+    const res = await fetch(`${API}/opportunities?${params}`);
+    if (res.ok) {
+      const json = await res.json();
+      initialData = Array.isArray(json) ? json : (json.data || []);
+    }
+  } catch (e) {
+    console.error("Erro ao buscar oportunidades (corners) no getStaticProps:", e.message);
+  }
+  return { props: { initialData }, revalidate: 300 };
+}
+
 function probColor(p) {
   if (p >= 75) return T.green;
   if (p >= 65) return T.yellow;
@@ -89,8 +104,8 @@ function CornerCard({ item, index = 0 }) {
   );
 }
 
-export default function CornersOpportunitiesPage() {
-  const [allData,      setAllData]      = useState([]);
+export default function CornersOpportunitiesPage({ initialData }) {
+  const [allData,      setAllData]      = useState(initialData || []);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
   const [market,       setMarket]       = useState("all");
@@ -102,7 +117,7 @@ export default function CornersOpportunitiesPage() {
   const [histPeriod,   setHistPeriod]   = useState("all");
   const [activeTab,    setActiveTab]    = useState("opps");
 
-  useEffect(() => { fetchData(); }, []);
+  // Dado inicial já vem do servidor via getStaticProps (ISR)
 
   async function fetchHistory(group, period) {
     setHistLoading(true);

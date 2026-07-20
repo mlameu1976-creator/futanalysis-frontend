@@ -89,11 +89,22 @@ function PlayerCard({ item, index = 0 }) {
 }
 
 export async function getStaticProps() {
-  return { props: {} };
+  let initialData = [];
+  try {
+    const params = new URLSearchParams({ min_confidence: "55", limit: 1000 });
+    const res = await fetch(`${API}/player-opportunities?${params}`);
+    if (res.ok) {
+      const json = await res.json();
+      initialData = json.opportunities || [];
+    }
+  } catch (e) {
+    console.error("Erro ao buscar oportunidades de jogadores no getStaticProps:", e.message);
+  }
+  return { props: { initialData }, revalidate: 300 };
 }
 
-export default function PlayersOpportunities() {
-  const [allData,      setAllData]      = useState([]);
+export default function PlayersOpportunities({ initialData }) {
+  const [allData,      setAllData]      = useState(initialData || []);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
   const [market,       setMarket]       = useState("all");
@@ -101,7 +112,7 @@ export default function PlayersOpportunities() {
   const [leagueFilter, setLeagueFilter] = useState("all");
   const [minConf,      setMinConf]      = useState("55");
 
-  useEffect(() => { fetchData(); }, []);
+  // Dado inicial já vem do servidor via getStaticProps (ISR)
 
   // busca todos de uma vez, filtra localmente
   async function fetchData() {

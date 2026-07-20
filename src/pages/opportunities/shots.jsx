@@ -25,6 +25,21 @@ const SIDES = [
   { key: "under", label: "Under" },
 ];
 
+export async function getStaticProps() {
+  let initialData = [];
+  try {
+    const params = new URLSearchParams({ date: "all", min_probability: "55", scope: "shots", limit: 300 });
+    const res = await fetch(`${API}/opportunities?${params}`);
+    if (res.ok) {
+      const json = await res.json();
+      initialData = Array.isArray(json) ? json : (json.data || []);
+    }
+  } catch (e) {
+    console.error("Erro ao buscar oportunidades (shots) no getStaticProps:", e.message);
+  }
+  return { props: { initialData }, revalidate: 300 };
+}
+
 function probColor(p) {
   if (p >= 75) return T.green;
   if (p >= 65) return T.yellow;
@@ -88,8 +103,8 @@ function ShotsOppCard({ item, index = 0 }) {
   );
 }
 
-export default function ShotsOpportunitiesPage() {
-  const [allData,      setAllData]      = useState([]);
+export default function ShotsOpportunitiesPage({ initialData }) {
+  const [allData,      setAllData]      = useState(initialData || []);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
   const [group,        setGroup]        = useState("total");
@@ -104,7 +119,7 @@ export default function ShotsOpportunitiesPage() {
   const [histPeriod,   setHistPeriod]   = useState("all");
   const [activeTab,    setActiveTab]    = useState("opps");
 
-  useEffect(() => { fetchData(); }, []);
+  // Dado inicial já vem do servidor via getStaticProps (ISR)
 
   async function fetchData() {
     setLoading(true); setError(null);
