@@ -1,6 +1,6 @@
 // src/pages/nfl.jsx — FutAnalysis NFL
 import AffiliateCTA from "../components/AffiliateCTA";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Head from "next/head";
 import Link from "next/link";
 
@@ -215,16 +215,32 @@ function HistoryTab() {
   );
 }
 
-export default function NFLPage() {
-  const [allGames, setAllGames]       = useState([]);
-  const [loading, setLoading]         = useState(true);
+export async function getStaticProps() {
+  let initialData = [];
+  try {
+    const res = await fetch(`${NFL_API}/nfl/opportunities/by-game?min_probability=58&days=120`);
+    if (res.ok) {
+      const data = await res.json();
+      initialData = data.games || [];
+    }
+  } catch (e) {
+    console.error("Erro ao buscar oportunidades NFL no getStaticProps:", e.message);
+  }
+  return { props: { initialData }, revalidate: 300 };
+}
+
+export default function NFLPage({ initialData }) {
+  const [allGames, setAllGames]       = useState(initialData || []);
+  const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState(null);
   const [minProb, setMinProb]         = useState(58);
   const [marketGroup, setMarketGroup] = useState("Todos");
   const [dateFilter, setDateFilter]   = useState("todos");
   const [tab, setTab]                 = useState("opps");
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
+    if (isFirstRun.current) { isFirstRun.current = false; return; }
     setLoading(true);
     fetch(`${NFL_API}/nfl/opportunities/by-game?min_probability=${minProb}&days=120`)
       .then(r => r.json())

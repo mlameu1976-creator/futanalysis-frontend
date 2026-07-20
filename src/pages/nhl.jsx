@@ -210,9 +210,23 @@ function HistoryTab() {
   );
 }
 
-export default function NHLPage() {
-  const [allOpps, setAllOpps]         = useState([]);
-  const [loading, setLoading]         = useState(true);
+export async function getStaticProps() {
+  let initialData = [];
+  try {
+    const res = await fetch(`${NHL_API}/nhl/opportunities?days_ahead=7`);
+    if (res.ok) {
+      const data = await res.json();
+      initialData = data.opportunities || [];
+    }
+  } catch (e) {
+    console.error("Erro ao buscar oportunidades NHL no getStaticProps:", e.message);
+  }
+  return { props: { initialData }, revalidate: 300 };
+}
+
+export default function NHLPage({ initialData }) {
+  const [allOpps, setAllOpps]         = useState(initialData || []);
+  const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState(null);
   const [minProb, setMinProb]         = useState(60);
   const [marketGroup, setMarketGroup] = useState("Todos");
@@ -227,13 +241,7 @@ export default function NHLPage() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${NHL_API}/nhl/opportunities?days_ahead=7`)
-      .then(r => r.json())
-      .then(data => { setAllOpps(data.opportunities || []); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
-  }, []);
+  // Dado inicial já vem do servidor via getStaticProps (ISR)
 
   const games = useMemo(() => {
     const now = new Date();

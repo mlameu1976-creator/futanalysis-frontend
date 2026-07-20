@@ -1,6 +1,6 @@
 // src/pages/mlb.jsx — v2: pitchers + Run Line + F5 + NRFI/YRFI
 import AffiliateCTA from "../components/AffiliateCTA";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Head from "next/head";
 import Link from "next/link";
 
@@ -239,16 +239,35 @@ function HistoryTab() {
   );
 }
 
-export default function MLBPage() {
-  const [allGames, setAllGames]       = useState([]);
-  const [loading, setLoading]         = useState(true);
+export async function getStaticProps() {
+  let initialData = [];
+  try {
+    const res = await fetch(`${MLB_API}/mlb/opportunities/by-game?min_probability=55&days=7`);
+    if (res.ok) {
+      const data = await res.json();
+      initialData = (data.games || []).map(g => ({
+        ...g,
+        markets: (g.markets || []).sort((a, b) => b.probability - a.probability),
+      }));
+    }
+  } catch (e) {
+    console.error("Erro ao buscar oportunidades MLB no getStaticProps:", e.message);
+  }
+  return { props: { initialData }, revalidate: 300 };
+}
+
+export default function MLBPage({ initialData }) {
+  const [allGames, setAllGames]       = useState(initialData || []);
+  const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState(null);
   const [minProb, setMinProb]         = useState(55);
   const [marketGroup, setMarketGroup] = useState("Todos");
   const [dateFilter, setDateFilter]   = useState("todos");
   const [tab, setTab]                 = useState("opps");
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
+    if (isFirstRun.current) { isFirstRun.current = false; return; }
     setLoading(true);
     fetch(`${MLB_API}/mlb/opportunities/by-game?min_probability=${minProb}&days=7`)
       .then(r => r.json())

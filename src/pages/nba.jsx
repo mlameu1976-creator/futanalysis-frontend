@@ -1,6 +1,6 @@
 // src/pages/nba.jsx — v3: padrão MLB/NFL
 import AffiliateCTA from "../components/AffiliateCTA";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Head from "next/head";
 import Link from "next/link";
 
@@ -244,16 +244,32 @@ function TeamsTab() {
   );
 }
 
-export default function NBAPage() {
-  const [allOpps, setAllOpps]         = useState([]);
-  const [loading, setLoading]         = useState(true);
+export async function getStaticProps() {
+  let initialData = [];
+  try {
+    const res = await fetch(`${NBA_API}/nba/opportunities?min_probability=55&days_ahead=7`);
+    if (res.ok) {
+      const json = await res.json();
+      initialData = json.opportunities || [];
+    }
+  } catch (e) {
+    console.error("Erro ao buscar oportunidades NBA no getStaticProps:", e.message);
+  }
+  return { props: { initialData }, revalidate: 300 };
+}
+
+export default function NBAPage({ initialData }) {
+  const [allOpps, setAllOpps]         = useState(initialData || []);
+  const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState(null);
   const [minProb, setMinProb]         = useState(55);
   const [marketGroup, setMarketGroup] = useState("Todos");
   const [dateFilter, setDateFilter]   = useState("todos");
   const [tab, setTab]                 = useState("opps");
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
+    if (isFirstRun.current) { isFirstRun.current = false; return; }
     setLoading(true);
     fetch(`${NBA_API}/nba/opportunities?min_probability=${minProb}&days_ahead=7`)
       .then(r => r.json())
