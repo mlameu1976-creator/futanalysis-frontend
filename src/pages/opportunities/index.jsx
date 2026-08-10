@@ -11,7 +11,9 @@ const T = {
   textDim:  "#4A5568", font: "'JetBrains Mono', 'Fira Code', monospace",
 };
 
-const MARKETS = [
+import { ADS_ENABLED } from "../../config/ads";
+
+const MARKETS_ALL = [
   {
     href:    "/opportunities/live",
     icon:    "🔴",
@@ -197,7 +199,7 @@ export default function OpportunitiesHub() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.2rem" }}>
-        {MARKETS.map(m => <MarketCard key={m.href} m={m} />)}
+        {MARKETS_ALL.filter(m => ADS_ENABLED || m.href !== "/cavalos").map(m => <MarketCard key={m.href} m={m} />)}
       </div>
 
       {/* FAQ */}
