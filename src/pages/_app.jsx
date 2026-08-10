@@ -4,6 +4,7 @@ import Script from "next/script"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/router"
 import NotificationPrompt from "../components/NotificationPrompt"
+import { ADS_ENABLED } from "../config/ads"
 
 const INACTIVITY_LIMIT = 60 * 60 * 1000
 const PUBLIC_PAGES = ["/login", "/register", "/privacidade"]
@@ -63,7 +64,7 @@ export default function App({ Component, pageProps }) {
 
   const [bannerHtml, setBannerHtml] = useState("")
   useEffect(() => {
-    if (shouldHideBanner(router.pathname)) {
+    if (!ADS_ENABLED || shouldHideBanner(router.pathname)) {
       setBannerHtml("")
       return
     }
@@ -73,7 +74,7 @@ export default function App({ Component, pageProps }) {
       .catch((err) => console.error("Banner erro:", err));
   }, [router.pathname])
 
-  const showBanner = bannerHtml && !shouldHideBanner(router.pathname)
+  const showBanner = ADS_ENABLED && bannerHtml && !shouldHideBanner(router.pathname)
 
   return (
     <>
@@ -131,6 +132,7 @@ export default function App({ Component, pageProps }) {
 
       <Component {...pageProps} />
       <NotificationPrompt />
+
     </>
   )
 }

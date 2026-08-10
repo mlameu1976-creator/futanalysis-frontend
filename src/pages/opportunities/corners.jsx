@@ -1,5 +1,6 @@
 // src/pages/opportunities/corners.jsx
-import AffiliateCTA from "../../components/AffiliateCTA";
+import AffiliateCTA, { CASAS } from "../../components/AffiliateCTA";
+import { ADS_ENABLED } from "../../config/ads";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Head from "next/head";
@@ -90,6 +91,27 @@ function CornerCard({ item, index = 0 }) {
             </span>
           </div>
         ) : null}
+        {ADS_ENABLED && item.fair_odd ? (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.surfaceHi, borderRadius: "6px", padding: "0.4rem 0.6rem", marginBottom: "0.5rem" }}>
+            <span style={{ fontSize: "0.7rem", color: T.textMid }}>
+              Odd justa: <strong style={{ color: T.text }}>{item.fair_odd.toFixed(2)}</strong>
+            </span>
+            {item.real_odd ? (
+              
+              <a
+                href={CASAS[index % CASAS.length].link}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                style={{ fontSize: "0.7rem", color: item.real_odd > item.fair_odd ? T.green : T.textMid, fontWeight: item.real_odd > item.fair_odd ? 700 : 400, textDecoration: "none" }}
+              >
+                {item.real_odd > item.fair_odd ? "💰 " : ""}Real: {item.real_odd.toFixed(2)} <span style={{ color: T.textDim, fontWeight: 400 }}>({item.bookmaker})</span>
+              </a>
+            ) : (
+              <span style={{ fontSize: "0.65rem", color: T.textDim }}>sem odd real ainda</span>
+            )}
+          </div>
+        ) : null}
+
 
         <div style={{ fontSize: "0.68rem", color: T.textDim, marginBottom: "0.8rem" }}>{dateStr}</div>
         {item.detail && <div style={{ fontSize: "0.7rem", color: T.teal, marginBottom: "0.6rem" }}>📊 {item.detail}</div>}
@@ -98,7 +120,7 @@ function CornerCard({ item, index = 0 }) {
           <span style={{ fontSize: "0.95rem", fontWeight: 700, color: probColor(item.probability) }}>{item.probability?.toFixed(1)}%</span>
         </div>
         <ProbBar value={item.probability || 0} />
-        <AffiliateCTA index={index} />
+        <AffiliateCTA index={index} bookmaker={item.bookmaker} />
       </div>
     </div>
   );

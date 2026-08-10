@@ -1,6 +1,5 @@
-// src/pages/opportunities/shots.jsx
-import AffiliateCTA, { CASAS } from "../../components/AffiliateCTA";
-import { ADS_ENABLED } from "../../config/ads";
+// src/pages/opportunities/football.jsx
+import AffiliateCTA from "../../components/AffiliateCTA";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Head from "next/head";
@@ -15,31 +14,85 @@ const T = {
   font: "'JetBrains Mono', 'Fira Code', monospace",
 };
 
-const GROUPS = [
-  { key: "total",    label: "Finalizações", lines: ["20.5", "25.5", "30.5"] },
-  { key: "on_goal",  label: "Chutes a Gol", lines: ["6.5", "8.5", "10.5"]  },
+const FOOTBALL_MARKETS = [
+  { key: "all",       label: "Todos"      },
+  { key: "GOAL_HT",   label: "Gol HT"    },
+  { key: "OVER_1.5",  label: "Over 1.5"  },
+  { key: "OVER_2.5",  label: "Over 2.5"  },
+  { key: "UNDER_2.5", label: "Under 2.5" },
+  { key: "BTTS",      label: "BTTS"      },
+  { key: "HOME_WIN",  label: "Casa vence"},
+  { key: "AWAY_WIN",  label: "Fora vence"},
+  { key: "fouls",     label: "Faltas"    },
 ];
 
-const SIDES = [
-  { key: "all",   label: "Todos" },
-  { key: "over",  label: "Over"  },
-  { key: "under", label: "Under" },
-];
+const MARKET_COLOR = {
+  "GOAL_HT":   "#F5C518",
+  "OVER_1.5":  "#2ECC71",
+  "OVER_2.5":  "#2ECC71",
+  "UNDER_2.5": "#3B82F6",
+  "BTTS":      "#8B5CF6",
+  "HOME_WIN":  "#FF8C00",
+  "AWAY_WIN":  "#E83B3B",
+  "fouls":     "#14B8A6",
+};
 
 export async function getStaticProps() {
-  const API_INTERNAL = process.env.API_INTERNAL_URL || "http://localhost:8000";
   let initialData = [];
   try {
-    const params = new URLSearchParams({ date: "all", min_probability: "55", scope: "shots", limit: 300 });
-    const res = await fetch(`${API_INTERNAL}/opportunities?${params}`);
+    const params = new URLSearchParams({ date: "all", min_probability: "55", scope: "match", limit: 300 });
+    const res = await fetch(`${API}/opportunities?${params}`);
     if (res.ok) {
       const json = await res.json();
       initialData = Array.isArray(json) ? json : (json.data || []);
     }
   } catch (e) {
-    console.error("Erro ao buscar oportunidades (shots) no getStaticProps:", e.message);
+    console.error("Erro ao buscar oportunidades no getStaticProps:", e.message);
   }
-  return { props: { initialData }, revalidate: 300 };
+  return {
+    props: { initialData },
+    revalidate: 300,
+  };
+}
+
+function FoulsCard({ item }) {
+  const color = "#14B8A6";
+  const dateStr = item.match_date
+    ? new Date(item.match_date).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+    : "—";
+  const conf = item.confidence || 0;
+  return (
+    <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden", transition: "border-color 0.2s, transform 0.2s" }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = color + "66"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.transform = "translateY(0)"; }}>
+      <div style={{ height: "3px", background: color }} />
+      <div style={{ padding: "1rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+          <span style={{ fontSize: "0.68rem", color: T.textDim, textTransform: "uppercase" }}>{item.league || "—"}</span>
+          <span style={{ fontSize: "0.65rem", color, background: color + "18", border: `1px solid ${color}33`, borderRadius: "20px", padding: "2px 8px" }}>{item.recommendation}</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "0.4rem", marginBottom: "0.5rem" }}>
+          <div style={{ fontWeight: 700, fontSize: "0.82rem", color: T.text }}>{item.home_team}</div>
+          <span style={{ fontSize: "0.7rem", color: T.textDim, textAlign: "center" }}>vs</span>
+          <div style={{ fontWeight: 700, fontSize: "0.82rem", color: T.text, textAlign: "right" }}>{item.away_team}</div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", background: T.surfaceHi, borderRadius: "6px", padding: "0.4rem 0.6rem", marginBottom: "0.5rem" }}>
+          <span style={{ fontSize: "0.72rem", color: T.textMid }}>Média esperada</span>
+          <span style={{ fontSize: "0.72rem", color, fontWeight: 700 }}>{item.avg_expected} faltas</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", background: T.surfaceHi, borderRadius: "6px", padding: "0.4rem 0.6rem", marginBottom: "0.5rem" }}>
+          <span style={{ fontSize: "0.65rem", color: T.textDim }}>Casa: {item.home_stats?.avg_all} avg</span>
+          <span style={{ fontSize: "0.65rem", color: T.textDim }}>Fora: {item.away_stats?.avg_all} avg</span>
+        </div>
+        <div style={{ fontSize: "0.68rem", color: T.textDim, marginBottom: "0.6rem" }}>{dateStr}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+          <span style={{ fontSize: "0.72rem", color: T.textMid }}>Confiança</span>
+          <span style={{ fontSize: "0.95rem", fontWeight: 700, color: probColor(conf) }}>{conf}%</span>
+        </div>
+        <ProbBar value={conf} />
+      </div>
+    </div>
+  );
 }
 
 function probColor(p) {
@@ -57,174 +110,176 @@ function ProbBar({ value }) {
   );
 }
 
-function ShotsOppCard({ item, index = 0 }) {
-  const isOver  = item.market?.startsWith("OVER");
-  const onGoal  = item.market?.includes("SHOTS ON GOAL");
-  const color   = onGoal ? (isOver ? T.orange : "#8B5CF6") : (isOver ? T.blue : T.green);
+function MatchCard({ item, index = 0 }) {
+  const color = MARKET_COLOR[item.market] || T.textMid;
   const dateStr = item.match_date
     ? new Date(item.match_date).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
     : "—";
+
+  const posLabel = (pos, played) => pos ? `${pos}º/${played}` : "—";
+
   return (
     <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: "10px", overflow: "hidden", transition: "border-color 0.2s, transform 0.2s" }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = color + "66"; e.currentTarget.style.transform = "translateY(-1px)"; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.transform = "translateY(0)"; }}>
       <div style={{ height: "3px", background: color }} />
       <div style={{ padding: "1rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
           <span style={{ fontSize: "0.68rem", color: T.textDim, textTransform: "uppercase" }}>{item.league || "—"}</span>
-          <span style={{ fontSize: "0.65rem", color, background: color + "18", border: `1px solid ${color}33`, borderRadius: "20px", padding: "2px 8px" }}>
-            {onGoal ? "🎯" : "👟"} {item.market}
-          </span>
-        </div>
-        <div style={{ fontWeight: 700, fontSize: "0.9rem", color: T.text, marginBottom: "0.2rem" }}>
-          {item.home_team} <span style={{ color: T.textDim }}>vs</span> {item.away_team}
+          <span style={{ fontSize: "0.65rem", color, background: color + "18", border: `1px solid ${color}33`, borderRadius: "20px", padding: "2px 8px" }}>{item.market}</span>
         </div>
 
-        {/* Média de chutes por time — evita que um time ofensivo "mascare" o outro */}
-        {(item.home_stats || item.away_stats) ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: "0.4rem", marginBottom: "0.5rem" }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: "0.82rem", color: T.text }}>{item.home_team}</div>
+            <div style={{ fontSize: "0.65rem", color: T.textDim }}>{posLabel(item.home_position, item.home_played)}</div>
+          </div>
+          <span style={{ fontSize: "0.7rem", color: T.textDim, textAlign: "center" }}>vs</span>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontWeight: 700, fontSize: "0.82rem", color: T.text }}>{item.away_team}</div>
+            <div style={{ fontSize: "0.65rem", color: T.textDim }}>{posLabel(item.away_position, item.away_played)}</div>
+          </div>
+        </div>
+
+        {(item.home_xg || item.away_xg) ? (
           <div style={{ display: "flex", justifyContent: "space-between", background: T.surfaceHi, borderRadius: "6px", padding: "0.4rem 0.6rem", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.68rem", color: T.textMid }}>
-              {item.home_team}: <strong style={{ color }}>{onGoal ? item.home_stats?.avg_sog_for : item.home_stats?.avg_for}</strong>
-            </span>
-            <span style={{ fontSize: "0.62rem", color: T.textDim }}>{onGoal ? "chutes a gol/jogo" : "chutes/jogo"}</span>
-            <span style={{ fontSize: "0.68rem", color: T.textMid }}>
-              {item.away_team}: <strong style={{ color }}>{onGoal ? item.away_stats?.avg_sog_for : item.away_stats?.avg_for}</strong>
-            </span>
+            <span style={{ fontSize: "0.72rem", color: T.green }}>xG: {item.home_xg?.toFixed(2)}</span>
+            <span style={{ fontSize: "0.65rem", color: T.textDim }}>expected goals</span>
+            <span style={{ fontSize: "0.72rem", color: T.green }}>xG: {item.away_xg?.toFixed(2)}</span>
           </div>
         ) : null}
-        {ADS_ENABLED && item.fair_odd ? (
+
+        {/* Odd justa (baseada na nossa probabilidade) vs odd real do mercado */}
+        {item.fair_odd ? (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.surfaceHi, borderRadius: "6px", padding: "0.4rem 0.6rem", marginBottom: "0.5rem" }}>
             <span style={{ fontSize: "0.7rem", color: T.textMid }}>
               Odd justa: <strong style={{ color: T.text }}>{item.fair_odd.toFixed(2)}</strong>
             </span>
             {item.real_odd ? (
-              
-              <a
-                href={CASAS[index % CASAS.length].link}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                style={{ fontSize: "0.7rem", color: item.real_odd > item.fair_odd ? T.green : T.textMid, fontWeight: item.real_odd > item.fair_odd ? 700 : 400, textDecoration: "none" }}
-              >
+              <span style={{ fontSize: "0.7rem", color: item.real_odd > item.fair_odd ? T.green : T.textMid, fontWeight: item.real_odd > item.fair_odd ? 700 : 400 }}>
                 {item.real_odd > item.fair_odd ? "💰 " : ""}Real: {item.real_odd.toFixed(2)} <span style={{ color: T.textDim, fontWeight: 400 }}>({item.bookmaker})</span>
-              </a>
+              </span>
             ) : (
               <span style={{ fontSize: "0.65rem", color: T.textDim }}>sem odd real ainda</span>
             )}
           </div>
         ) : null}
 
+        <div style={{ fontSize: "0.68rem", color: T.textDim, marginBottom: "0.6rem" }}>{dateStr}</div>
 
-        <div style={{ fontSize: "0.68rem", color: T.textDim, marginBottom: "0.8rem" }}>{dateStr}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
           <span style={{ fontSize: "0.72rem", color: T.textMid }}>Probabilidade</span>
           <span style={{ fontSize: "0.95rem", fontWeight: 700, color: probColor(item.probability) }}>{item.probability?.toFixed(1)}%</span>
         </div>
         <ProbBar value={item.probability || 0} />
-        <AffiliateCTA index={index} bookmaker={item.bookmaker} />
+        <AffiliateCTA index={index} />
       </div>
     </div>
   );
 }
 
-export default function ShotsOpportunitiesPage({ initialData }) {
-  const [allData,      setAllData]      = useState(initialData || []);
+export default function FootballOpportunities({ initialData }) {
+  const [data,         setData]         = useState(initialData || []);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
-  const [group,        setGroup]        = useState("total");
-  const [side,         setSide]         = useState("all");
-  const [line,         setLine]         = useState("all");
-  const [teamFilter,   setTeamFilter]   = useState("all");
+  const [market,       setMarket]       = useState("all");
   const [dateFilter,   setDateFilter]   = useState("all");
   const [leagueFilter, setLeagueFilter] = useState("all");
   const [minProb,      setMinProb]      = useState("55");
+  const [foulsData,    setFoulsData]    = useState([]);
   const [historyData,  setHistoryData]  = useState(null);
   const [histLoading,  setHistLoading]  = useState(false);
   const [histPeriod,   setHistPeriod]   = useState("all");
   const [activeTab,    setActiveTab]    = useState("opps");
 
-  // Dado inicial já vem do servidor via getStaticProps (ISR)
+  useEffect(() => { fetchFouls(); }, []);
 
   async function fetchData() {
     setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams({ date: "all", min_probability: minProb, scope: "shots", limit: 300 });
-      const res = await fetch(`${API_INTERNAL}/opportunities?${params}`);
+      const params = new URLSearchParams({ date: "all", min_probability: minProb, scope: "match", limit: 300 });
+      const res = await fetch(`${API}/opportunities?${params}`);
       if (!res.ok) throw new Error(`Erro ${res.status}`);
       const json = await res.json();
-      setAllData(Array.isArray(json) ? json : (json.data || []));
+      setData(Array.isArray(json) ? json : (json.data || []));
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }
 
-  async function fetchHistory(period) {
+  async function fetchFouls() {
+    try {
+      const res = await fetch(`${API}/fouls-opportunities?line=19.5&min_confidence=55&limit=200`);
+      if (!res.ok) return;
+      const json = await res.json();
+      setFoulsData(json.opportunities || []);
+    } catch (e) {}
+  }
+
+  async function fetchHistory(group, period) {
     setHistLoading(true);
     try {
       const p = period || histPeriod || "all";
-      const res = await fetch(`${API}/history?group=chutes&period=${p}`);
+      const res = await fetch(`${API}/history?group=gols&period=${p}`);
       const json = await res.json();
       setHistoryData(json);
     } catch(e) {} finally { setHistLoading(false); }
   }
-
   const today    = new Date().toISOString().split("T")[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
-  const activeGroup = GROUPS.find(g => g.key === group);
+  const isFouls = market === "fouls";
 
-  // reseta a linha selecionada se ela não existir no grupo atual
-  useEffect(() => {
-    if (line !== "all" && !activeGroup.lines.includes(line)) setLine("all");
-  }, [group]);
+  const filtered = isFouls
+    ? foulsData.filter(item => {
+        const d = item.match_date?.slice(0, 10);
+        if (dateFilter === "today"    && d !== today)    return false;
+        if (dateFilter === "tomorrow" && d !== tomorrow) return false;
+        if (leagueFilter !== "all" && item.league !== leagueFilter) return false;
+        return true;
+      }).sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+    : data.filter(item => {
+        const d = item.match_date?.slice(0, 10);
+        if (dateFilter === "today"    && d !== today)    return false;
+        if (dateFilter === "tomorrow" && d !== tomorrow) return false;
+        if (market !== "all" && item.market !== market)  return false;
+        if (leagueFilter !== "all" && item.league !== leagueFilter) return false;
+        return true;
+      }).sort((a, b) => (b.probability || 0) - (a.probability || 0));
 
-  const filtered = allData.filter(item => {
-    const d = item.match_date?.slice(0, 10);
-    if (dateFilter === "today"    && d !== today)    return false;
-    if (dateFilter === "tomorrow" && d !== tomorrow) return false;
-    if (leagueFilter !== "all" && item.league !== leagueFilter) return false;
-    if (teamFilter   !== "all" && item.home_team !== teamFilter && item.away_team !== teamFilter) return false;
+  const leagues = [...new Set((isFouls ? foulsData : data).map(o => o.league).filter(Boolean))].sort();
 
-    const onGoal = item.market?.includes("SHOTS ON GOAL");
-    if (group === "on_goal" && !onGoal) return false;
-    if (group === "total"   &&  onGoal) return false;
-
-    const isOver = item.market?.startsWith("OVER");
-    if (side === "over"  && !isOver) return false;
-    if (side === "under" &&  isOver) return false;
-
-    if (line !== "all" && !item.market?.includes(` ${line} `)) return false;
-
-    return true;
-  }).sort((a, b) => (b.probability || 0) - (a.probability || 0));
-
-  const leagues = [...new Set(allData.map(o => o.league).filter(Boolean))].sort();
-  const teams   = [...new Set(allData.flatMap(o => [o.home_team, o.away_team]).filter(Boolean))].sort();
-
-  const inp  = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: "6px", color: T.text, padding: "0.45rem 0.7rem", fontSize: "0.78rem", fontFamily: T.font, outline: "none" };
-  const btnP = { background: T.blue, color: "#000", border: "none", borderRadius: "6px", padding: "0.45rem 1.1rem", fontWeight: 700, fontSize: "0.78rem", fontFamily: T.font, cursor: "pointer" };
+  const inp = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: "6px", color: T.text, padding: "0.45rem 0.7rem", fontSize: "0.78rem", fontFamily: T.font, outline: "none" };
+  const btnP = { background: T.green, color: "#000", border: "none", borderRadius: "6px", padding: "0.45rem 1.1rem", fontWeight: 700, fontSize: "0.78rem", fontFamily: T.font, cursor: "pointer" };
 
   return (
     <>
       <Head>
-        <title>Oportunidades de Finalizações — FutAnalysis | Análise Estatística</title>
-        <meta name="description" content="Oportunidades de chutes e chutes a gol no futebol calculadas por modelo estatístico. Over/Under de finalizações totais e no alvo para as principais ligas do mundo." />
-        <link rel="canonical" href="https://futanalysis.com.br/opportunities/shots" />
+        <title>Oportunidades de Futebol — FutAnalysis | Análise Estatística</title>
+        <meta name="description" content="Oportunidades de futebol calculadas por modelo estatístico avançado. Mercados de Over/Under, BTTS, resultado e gol no 1º tempo para mais de 110 ligas do mundo." />
+        <link rel="canonical" href="https://futanalysis.com.br/opportunities/football" />
       </Head>
       <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: T.font, padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
 
         <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem", paddingBottom: "1rem", borderBottom: `1px solid ${T.border}` }}>
           <Link href="/opportunities" style={{ color: T.textMid, textDecoration: "none", fontSize: "0.78rem" }}>← oportunidades</Link>
-          <Link href="/analises/futebol" style={{ color: T.blue, textDecoration: "none", fontSize: "0.72rem", background: T.blue + "18", border: `1px solid ${T.blue}33`, borderRadius: "20px", padding: "3px 10px" }}>📋 análises futebol →</Link>
-          <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.blue }}>👟 Finalizações</h1>
+          <Link href="/analises/futebol" style={{ color: T.green, textDecoration: "none", fontSize: "0.72rem", background: T.green + "18", border: `1px solid ${T.green}33`, borderRadius: "20px", padding: "3px 10px" }}>📋 análises futebol →</Link>
+          <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.green }}>⚽ Futebol</h1>
           <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: T.textMid }}>{filtered.length} oportunidades</span>
         </div>
 
-        {/* Tabs principais */}
+        <div style={{ background: T.surfaceHi, borderRadius: "10px", padding: "1rem 1.2rem", marginBottom: "1.5rem", borderLeft: `3px solid ${T.green}` }}>
+          <p style={{ margin: 0, fontSize: "0.78rem", color: T.textMid, lineHeight: 1.7 }}>
+            Oportunidades calculadas pelo modelo <strong style={{ color: T.text }}>Dixon-Coles com distribuição de Poisson</strong>, considerando força de ataque e defesa de cada time, forma recente com peso exponencial e histórico de confrontos diretos. Mercados disponíveis: Over/Under 1.5 e 2.5 gols, BTTS, Gol no 1º tempo, Casa vence e Fora vence.
+          </p>
+        </div>
+
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem", borderBottom: `1px solid ${T.border}`, paddingBottom: "0.8rem" }}>
-          {[["opps","👟 Finalizações"],["history","📊 Histórico de Acertos"]].map(([tab, label]) => (
+          {[["opps","⚽ Oportunidades"],["history","📊 Histórico de Acertos"]].map(([tab, label]) => (
             <button key={tab} onClick={() => { setActiveTab(tab); if(tab==="history") fetchHistory(); }} style={{
-              background: activeTab===tab ? T.blue+"22" : "transparent",
-              color: activeTab===tab ? T.blue : T.textMid,
-              border: `1px solid ${activeTab===tab ? T.blue : T.border}`,
+              background: activeTab===tab ? T.green+"22" : "transparent",
+              color: activeTab===tab ? T.green : T.textMid,
+              border: `1px solid ${activeTab===tab ? T.green : T.border}`,
               borderRadius: "8px", padding: "0.4rem 1rem",
               fontSize: "0.78rem", fontFamily: T.font, cursor: "pointer",
               fontWeight: activeTab===tab ? 700 : 400,
@@ -239,26 +294,17 @@ export default function ShotsOpportunitiesPage({ initialData }) {
             <div style={{ display: "flex", gap: "0.4rem", marginBottom: "1.2rem", flexWrap: "wrap" }}>
               <span style={{ fontSize: "0.65rem", color: T.textDim, alignSelf: "center", textTransform: "uppercase", marginRight: "0.2rem" }}>Período:</span>
               {[["all","Tudo"],["90d","90 dias"],["30d","30 dias"],["7d","7 dias"]].map(([p, label]) => (
-                <button key={p} onClick={() => { setHistPeriod(p); setHistoryData(null); fetchHistory(p); }} style={{
-                  background: histPeriod===p ? T.blue+"22" : "transparent",
-                  color: histPeriod===p ? T.blue : T.textMid,
-                  border: `1px solid ${histPeriod===p ? T.blue : T.border}`,
+                <button key={p} onClick={() => { setHistPeriod(p); setHistoryData(null); fetchHistory(undefined, p); }} style={{
+                  background: histPeriod===p ? T.green+"22" : "transparent",
+                  color: histPeriod===p ? T.green : T.textMid,
+                  border: `1px solid ${histPeriod===p ? T.green : T.border}`,
                   borderRadius: "20px", padding: "0.3rem 0.8rem",
                   fontSize: "0.72rem", fontFamily: T.font, cursor: "pointer",
                   fontWeight: histPeriod===p ? 700 : 400,
                 }}>{label}</button>
               ))}
             </div>
-
-            {historyData && historyData.resumo.total === 0 && (
-              <div style={{ background: T.surfaceHi, borderRadius: "10px", padding: "1.5rem", borderLeft: "3px solid #F5C518", textAlign: "center" }}>
-                <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>⚙️</div>
-                <div style={{ color: T.text, fontWeight: 700, marginBottom: "0.4rem" }}>Histórico em construção</div>
-                <div style={{ color: T.textMid, fontSize: "0.78rem" }}>Estamos coletando resultados das partidas recentes. O histórico estará disponível em breve.</div>
-              </div>
-            )}
-
-            {historyData && historyData.resumo.total > 0 && (
+            {historyData && (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.8rem", marginBottom: "1.5rem" }}>
                   {[
@@ -311,73 +357,21 @@ export default function ShotsOpportunitiesPage({ initialData }) {
         )}
 
         {activeTab === "opps" && <>
-
-        {/* Introdução */}
-        <div style={{ background: T.surfaceHi, borderRadius: "10px", padding: "1rem 1.2rem", marginBottom: "1.5rem", borderLeft: `3px solid ${T.blue}` }}>
-          <p style={{ margin: 0, fontSize: "0.78rem", color: T.textMid, lineHeight: 1.7 }}>
-            Oportunidades de chutes calculadas com base no <strong style={{ color: T.text }}>histórico dos últimos 15 jogos</strong> de cada time. Mercados: Over/Under de chutes totais (20.5, 25.5, 30.5) e chutes a gol (6.5, 8.5, 10.5) por partida.
-          </p>
-        </div>
-
-        {/* Toggle de grupo */}
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-          {GROUPS.map(g => (
-            <button key={g.key} onClick={() => { setGroup(g.key); setLine("all"); }} style={{
-              background: group === g.key ? T.blue : T.surface,
-              color:      group === g.key ? "#000" : T.textMid,
-              border: `1px solid ${group === g.key ? T.blue : T.border}`,
-              borderRadius: "8px", padding: "0.5rem 1.2rem",
-              fontSize: "0.8rem", fontFamily: T.font, cursor: "pointer",
-              fontWeight: group === g.key ? 700 : 400,
-            }}>{g.label}</button>
-          ))}
-        </div>
-
-        {/* Toggle Over/Under */}
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-          {SIDES.map(s => (
-            <button key={s.key} onClick={() => setSide(s.key)} style={{
-              background: side === s.key ? T.green : T.surface,
-              color:      side === s.key ? "#000" : T.textMid,
-              border: `1px solid ${side === s.key ? T.green : T.border}`,
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.2rem" }}>
+          {FOOTBALL_MARKETS.map(m => (
+            <button key={m.key} onClick={() => setMarket(m.key)} style={{
+              background: market === m.key ? T.green : T.surface,
+              color: market === m.key ? "#000" : T.textMid,
+              border: `1px solid ${market === m.key ? T.green : T.border}`,
               borderRadius: "20px", padding: "0.35rem 0.9rem",
               fontSize: "0.75rem", fontFamily: T.font, cursor: "pointer",
-              fontWeight: side === s.key ? 700 : 400,
-            }}>{s.label}</button>
+              fontWeight: market === m.key ? 700 : 400,
+              transition: "all 0.15s",
+            }}>{m.label}</button>
           ))}
         </div>
 
-        {/* Filtro de linha */}
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem", flexWrap: "wrap" }}>
-          <button onClick={() => setLine("all")} style={{
-            background: line === "all" ? T.yellow : T.surface,
-            color:      line === "all" ? "#000"   : T.textMid,
-            border: `1px solid ${line === "all" ? T.yellow : T.border}`,
-            borderRadius: "20px", padding: "0.3rem 0.8rem",
-            fontSize: "0.72rem", fontFamily: T.font, cursor: "pointer",
-            fontWeight: line === "all" ? 700 : 400,
-          }}>Todas as linhas</button>
-          {activeGroup.lines.map(l => (
-            <button key={l} onClick={() => setLine(l)} style={{
-              background: line === l ? T.yellow : T.surface,
-              color:      line === l ? "#000"   : T.textMid,
-              border: `1px solid ${line === l ? T.yellow : T.border}`,
-              borderRadius: "20px", padding: "0.3rem 0.8rem",
-              fontSize: "0.72rem", fontFamily: T.font, cursor: "pointer",
-              fontWeight: line === l ? 700 : 400,
-            }}>{l}</button>
-          ))}
-        </div>
-
-        {/* Filtros secundários */}
         <div style={{ display: "flex", gap: "0.6rem", marginBottom: "1.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div>
-            <div style={{ fontSize: "0.62rem", color: T.textMid, marginBottom: "0.25rem", textTransform: "uppercase" }}>Equipe</div>
-            <select style={inp} value={teamFilter} onChange={e => setTeamFilter(e.target.value)}>
-              <option value="all">Todas</option>
-              {teams.map(t => <option key={t}>{t}</option>)}
-            </select>
-          </div>
           <div>
             <div style={{ fontSize: "0.62rem", color: T.textMid, marginBottom: "0.25rem", textTransform: "uppercase" }}>Data</div>
             <select style={inp} value={dateFilter} onChange={e => setDateFilter(e.target.value)}>
@@ -405,7 +399,7 @@ export default function ShotsOpportunitiesPage({ initialData }) {
           <button style={btnP} onClick={fetchData}>Atualizar</button>
         </div>
 
-        {error   && <div style={{ color: T.red,     fontSize: "0.82rem", marginBottom: "1rem" }}>⚠ {error}</div>}
+        {error   && <div style={{ color: T.red, fontSize: "0.82rem", marginBottom: "1rem" }}>⚠ {error}</div>}
         {loading && <div style={{ color: T.textMid, fontSize: "0.82rem", marginBottom: "1rem" }}>Carregando…</div>}
 
         {!loading && filtered.length === 0 && (
@@ -415,7 +409,10 @@ export default function ShotsOpportunitiesPage({ initialData }) {
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
-          {filtered.map((item, i) => <ShotsOppCard key={`${item.match_id}-${item.market}-${i}`} item={item} index={(1 + i) % 10} />)}
+          {filtered.map((item, i) => isFouls
+            ? <FoulsCard key={`fouls-${item.match_id}-${i}`} item={item} />
+            : <MatchCard key={`${item.match_id}-${item.market}-${i}`} item={item} index={i} />
+          )}
         </div>
       </>
       }

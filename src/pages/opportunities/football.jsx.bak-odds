@@ -1,6 +1,5 @@
 // src/pages/opportunities/football.jsx
-import AffiliateCTA, { CASAS, getCasaByBookmaker } from "../../components/AffiliateCTA";
-import { ADS_ENABLED } from "../../config/ads";
+import AffiliateCTA from "../../components/AffiliateCTA";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Head from "next/head";
@@ -25,7 +24,6 @@ const FOOTBALL_MARKETS = [
   { key: "HOME_WIN",  label: "Casa vence"},
   { key: "AWAY_WIN",  label: "Fora vence"},
   { key: "fouls",     label: "Faltas"    },
-  { key: "LAY_GOLEADA", label: "Lay Goleada" },
 ];
 
 const MARKET_COLOR = {
@@ -37,7 +35,6 @@ const MARKET_COLOR = {
   "HOME_WIN":  "#FF8C00",
   "AWAY_WIN":  "#E83B3B",
   "fouls":     "#14B8A6",
-  "LAY_GOLEADA": "#EC4899",
 };
 
 export async function getStaticProps() {
@@ -93,14 +90,6 @@ function FoulsCard({ item }) {
           <span style={{ fontSize: "0.95rem", fontWeight: 700, color: probColor(conf) }}>{conf}%</span>
         </div>
         <ProbBar value={conf} />
-        <Link href={`/jogo/${item.match_id}`} style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
-          marginTop: "0.6rem", padding: "0.45rem", borderRadius: "8px",
-          background: T.surfaceHi, border: `1px solid ${T.border}`,
-          color: T.blue, fontSize: "0.72rem", fontWeight: 700, textDecoration: "none",
-        }}>
-          Ver análise completa →
-        </Link>
       </div>
     </div>
   );
@@ -161,28 +150,6 @@ function MatchCard({ item, index = 0 }) {
           </div>
         ) : null}
 
-        {/* Odd justa (baseada na nossa probabilidade) vs odd real do mercado */}
-        {ADS_ENABLED && item.fair_odd ? (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.surfaceHi, borderRadius: "6px", padding: "0.4rem 0.6rem", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.7rem", color: T.textMid }}>
-              Odd justa: <strong style={{ color: T.text }}>{item.fair_odd.toFixed(2)}</strong>
-            </span>
-            {item.real_odd ? (
-              
-              <a
-                href={getCasaByBookmaker(item.bookmaker, index).link}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                style={{ fontSize: "0.7rem", color: item.real_odd > item.fair_odd ? T.green : T.textMid, fontWeight: item.real_odd > item.fair_odd ? 700 : 400, textDecoration: "none" }}
-              >
-                {item.real_odd > item.fair_odd ? "💰 " : ""}Real: {item.real_odd.toFixed(2)} <span style={{ color: T.textDim, fontWeight: 400 }}>({item.bookmaker})</span>
-              </a>
-            ) : (
-              <span style={{ fontSize: "0.65rem", color: T.textDim }}>sem odd real ainda</span>
-            )}
-          </div>
-        ) : null}
-
         <div style={{ fontSize: "0.68rem", color: T.textDim, marginBottom: "0.6rem" }}>{dateStr}</div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
@@ -190,15 +157,7 @@ function MatchCard({ item, index = 0 }) {
           <span style={{ fontSize: "0.95rem", fontWeight: 700, color: probColor(item.probability) }}>{item.probability?.toFixed(1)}%</span>
         </div>
         <ProbBar value={item.probability || 0} />
-        <Link href={`/jogo/${item.match_id}`} style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
-          marginTop: "0.6rem", padding: "0.45rem", borderRadius: "8px",
-          background: T.surfaceHi, border: `1px solid ${T.border}`,
-          color: T.blue, fontSize: "0.72rem", fontWeight: 700, textDecoration: "none",
-        }}>
-          Ver análise completa →
-        </Link>
-        <AffiliateCTA index={index} bookmaker={item.bookmaker} />
+        <AffiliateCTA index={index} />
       </div>
     </div>
   );
@@ -218,12 +177,12 @@ export default function FootballOpportunities({ initialData }) {
   const [histPeriod,   setHistPeriod]   = useState("all");
   const [activeTab,    setActiveTab]    = useState("opps");
 
-  useEffect(() => { fetchFouls(); fetchData(); }, []);
+  useEffect(() => { fetchFouls(); }, []);
 
   async function fetchData() {
     setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams({ date: "all", min_probability: minProb, scope: "match", limit: 1000 });
+      const params = new URLSearchParams({ date: "all", min_probability: minProb, scope: "match", limit: 300 });
       const res = await fetch(`${API}/opportunities?${params}`);
       if (!res.ok) throw new Error(`Erro ${res.status}`);
       const json = await res.json();

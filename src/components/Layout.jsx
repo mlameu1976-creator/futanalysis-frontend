@@ -61,7 +61,7 @@ export default function Layout({ children }) {
               PROIBIDO PARA MENORES DE 18 ANOS
             </span>
             <span style={{ color: "#fca5a5", fontSize: "0.8rem" }}>
-              O jogo pode causar dependencia - jogue com responsabilidade
+              Ministério da Fazenda adverte: Apostar pode causar dependência
             </span>
           </div>
         </div>

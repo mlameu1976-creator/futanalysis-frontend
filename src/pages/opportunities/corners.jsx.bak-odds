@@ -1,6 +1,5 @@
-// src/pages/opportunities/cards.jsx
-import AffiliateCTA, { CASAS } from "../../components/AffiliateCTA";
-import { ADS_ENABLED } from "../../config/ads";
+// src/pages/opportunities/corners.jsx
+import AffiliateCTA from "../../components/AffiliateCTA";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Head from "next/head";
@@ -11,36 +10,36 @@ const T = {
   bg: "#080C10", surface: "#0E1419", surfaceHi: "#141B22",
   border: "#1E2830", yellow: "#F5C518", red: "#E83B3B",
   green: "#2ECC71", blue: "#3B82F6", orange: "#FF8C00",
-  text: "#EDF2F7", textMid: "#94A3B8", textDim: "#4A5568",
+  teal: "#14B8A6", text: "#EDF2F7", textMid: "#94A3B8", textDim: "#4A5568",
   font: "'JetBrains Mono', 'Fira Code', monospace",
 };
 
-const CARDS_MARKETS = [
-  { key: "all",      label: "Todos"      },
-  { key: "OVER 3.5", label: "Over 3.5"  },
-  { key: "OVER 4.5", label: "Over 4.5"  },
-  { key: "UNDER 3.5",label: "Under 3.5" },
-  { key: "UNDER 4.5",label: "Under 4.5" },
+const CORNERS_MARKETS = [
+  { key: "all",               label: "Todos"        },
+  { key: "OVER 8.5 CORNERS",  label: "Over 8.5"    },
+  { key: "OVER 10.5 CORNERS", label: "Over 10.5"   },
+  { key: "UNDER 8.5 CORNERS", label: "Under 8.5"   },
+  { key: "UNDER 10.5 CORNERS",label: "Under 10.5"  },
 ];
 
 const MARKET_COLOR = {
-  "OVER 3.5":  "#E83B3B",
-  "OVER 4.5":  "#E83B3B",
-  "UNDER 3.5": "#2ECC71",
-  "UNDER 4.5": "#2ECC71",
+  "OVER 8.5 CORNERS":   "#E83B3B",
+  "OVER 10.5 CORNERS":  "#E83B3B",
+  "UNDER 8.5 CORNERS":  "#2ECC71",
+  "UNDER 10.5 CORNERS": "#2ECC71",
 };
 
 export async function getStaticProps() {
   let initialData = [];
   try {
-    const params = new URLSearchParams({ date: "all", min_probability: "55", scope: "cards", limit: 100 });
+    const params = new URLSearchParams({ date: "all", min_probability: "55", scope: "corners", limit: 100 });
     const res = await fetch(`${API}/opportunities?${params}`);
     if (res.ok) {
       const json = await res.json();
       initialData = Array.isArray(json) ? json : (json.data || []);
     }
   } catch (e) {
-    console.error("Erro ao buscar oportunidades (cards) no getStaticProps:", e.message);
+    console.error("Erro ao buscar oportunidades (corners) no getStaticProps:", e.message);
   }
   return { props: { initialData }, revalidate: 300 };
 }
@@ -60,8 +59,8 @@ function ProbBar({ value }) {
   );
 }
 
-function CardOppCard({ item, index = 0 }) {
-  const color = MARKET_COLOR[item.market] || T.yellow;
+function CornerCard({ item, index = 0 }) {
+  const color = MARKET_COLOR[item.market] || T.teal;
   const dateStr = item.match_date
     ? new Date(item.match_date).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
     : "—";
@@ -73,48 +72,27 @@ function CardOppCard({ item, index = 0 }) {
       <div style={{ padding: "1rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
           <span style={{ fontSize: "0.68rem", color: T.textDim, textTransform: "uppercase" }}>{item.league || "—"}</span>
-          <span style={{ fontSize: "0.65rem", color, background: color + "18", border: `1px solid ${color}33`, borderRadius: "20px", padding: "2px 8px" }}>🟨 {item.market}</span>
+          <span style={{ fontSize: "0.65rem", color, background: color + "18", border: `1px solid ${color}33`, borderRadius: "20px", padding: "2px 8px" }}>⛳ {item.market}</span>
         </div>
         <div style={{ fontWeight: 700, fontSize: "0.9rem", color: T.text, marginBottom: "0.2rem" }}>
           {item.home_team} <span style={{ color: T.textDim }}>vs</span> {item.away_team}
         </div>
 
-        {/* Média de cartões por time — evita que um time indisciplinado "mascare" o outro */}
+        {/* Média de escanteios por time — evita que um time ofensivo "mascare" o outro */}
         {(item.home_stats || item.away_stats) ? (
           <div style={{ display: "flex", justifyContent: "space-between", background: T.surfaceHi, borderRadius: "6px", padding: "0.4rem 0.6rem", marginBottom: "0.5rem" }}>
             <span style={{ fontSize: "0.68rem", color: T.textMid }}>
               {item.home_team}: <strong style={{ color }}>{item.home_stats?.avg_for ?? "—"}</strong>
             </span>
-            <span style={{ fontSize: "0.62rem", color: T.textDim }}>cartões/jogo</span>
+            <span style={{ fontSize: "0.62rem", color: T.textDim }}>escanteios/jogo</span>
             <span style={{ fontSize: "0.68rem", color: T.textMid }}>
               {item.away_team}: <strong style={{ color }}>{item.away_stats?.avg_for ?? "—"}</strong>
             </span>
           </div>
         ) : null}
-        {ADS_ENABLED && item.fair_odd ? (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: T.surfaceHi, borderRadius: "6px", padding: "0.4rem 0.6rem", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.7rem", color: T.textMid }}>
-              Odd justa: <strong style={{ color: T.text }}>{item.fair_odd.toFixed(2)}</strong>
-            </span>
-            {item.real_odd ? (
-              
-              <a
-                href={CASAS[index % CASAS.length].link}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                style={{ fontSize: "0.7rem", color: item.real_odd > item.fair_odd ? T.green : T.textMid, fontWeight: item.real_odd > item.fair_odd ? 700 : 400, textDecoration: "none" }}
-              >
-                {item.real_odd > item.fair_odd ? "💰 " : ""}Real: {item.real_odd.toFixed(2)} <span style={{ color: T.textDim, fontWeight: 400 }}>({item.bookmaker})</span>
-              </a>
-            ) : (
-              <span style={{ fontSize: "0.65rem", color: T.textDim }}>sem odd real ainda</span>
-            )}
-          </div>
-        ) : null}
-
 
         <div style={{ fontSize: "0.68rem", color: T.textDim, marginBottom: "0.8rem" }}>{dateStr}</div>
-        {item.detail && <div style={{ fontSize: "0.7rem", color: T.yellow, marginBottom: "0.6rem" }}>📊 {item.detail}</div>}
+        {item.detail && <div style={{ fontSize: "0.7rem", color: T.teal, marginBottom: "0.6rem" }}>📊 {item.detail}</div>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
           <span style={{ fontSize: "0.72rem", color: T.textMid }}>Probabilidade</span>
           <span style={{ fontSize: "0.95rem", fontWeight: 700, color: probColor(item.probability) }}>{item.probability?.toFixed(1)}%</span>
@@ -126,7 +104,7 @@ function CardOppCard({ item, index = 0 }) {
   );
 }
 
-export default function CardsOpportunitiesPage({ initialData }) {
+export default function CornersOpportunitiesPage({ initialData }) {
   const [allData,      setAllData]      = useState(initialData || []);
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState(null);
@@ -145,7 +123,7 @@ export default function CardsOpportunitiesPage({ initialData }) {
     setHistLoading(true);
     try {
       const p = period || histPeriod || "all";
-      const res = await fetch(`${API}/history?group=cartoes&period=${p}`);
+      const res = await fetch(`${API}/history?group=escanteios&period=${p}`);
       const json = await res.json();
       setHistoryData(json);
     } catch(e) {} finally { setHistLoading(false); }
@@ -154,7 +132,7 @@ export default function CardsOpportunitiesPage({ initialData }) {
   async function fetchData() {
     setLoading(true); setError(null);
     try {
-      const params = new URLSearchParams({ date: "all", min_probability: minProb, scope: "cards", limit: 100 });
+      const params = new URLSearchParams({ date: "all", min_probability: minProb, scope: "corners", limit: 100 });
       const res = await fetch(`${API}/opportunities?${params}`);
       if (!res.ok) throw new Error(`Erro ${res.status}`);
       const json = await res.json();
@@ -166,7 +144,6 @@ export default function CardsOpportunitiesPage({ initialData }) {
   const today    = new Date().toISOString().split("T")[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
-  // filtro 100% local — sem refetch ao trocar mercado
   const filtered = allData.filter(item => {
     const d = item.match_date?.slice(0, 10);
     if (dateFilter === "today"    && d !== today)    return false;
@@ -179,28 +156,28 @@ export default function CardsOpportunitiesPage({ initialData }) {
   const leagues = [...new Set(allData.map(o => o.league).filter(Boolean))].sort();
 
   const inp = { background: T.surface, border: `1px solid ${T.border}`, borderRadius: "6px", color: T.text, padding: "0.45rem 0.7rem", fontSize: "0.78rem", fontFamily: T.font, outline: "none" };
-  const btnP = { background: T.yellow, color: "#000", border: "none", borderRadius: "6px", padding: "0.45rem 1.1rem", fontWeight: 700, fontSize: "0.78rem", fontFamily: T.font, cursor: "pointer" };
+  const btnP = { background: T.teal, color: "#000", border: "none", borderRadius: "6px", padding: "0.45rem 1.1rem", fontWeight: 700, fontSize: "0.78rem", fontFamily: T.font, cursor: "pointer" };
 
   return (
     <>
       <Head>
-        <title>Oportunidades de Cartões — FutAnalysis | Análise Estatística</title>
-        <meta name="description" content="Oportunidades de mercado de cartões no futebol calculadas por modelo estatístico. Over/Under 3.5 e 4.5 cartões por jogo para as principais ligas do mundo." />
-        <link rel="canonical" href="https://futanalysis.com.br/opportunities/cards" />
+        <title>Oportunidades de Escanteios — FutAnalysis | Análise Estatística</title>
+        <meta name="description" content="Oportunidades de mercado de escanteios no futebol calculadas por modelo estatístico Poisson. Over/Under 8.5 e 10.5 escanteios por jogo para as principais ligas." />
+        <link rel="canonical" href="https://futanalysis.com.br/opportunities/corners" />
       </Head>
       <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: T.font, padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
 
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem", paddingBottom: "1rem", borderBottom: `1px solid ${T.border}` }}>
         <Link href="/opportunities" style={{ color: T.textMid, textDecoration: "none", fontSize: "0.78rem" }}>← oportunidades</Link>
         <Link href="/analises/futebol" style={{ color: T.green, textDecoration: "none", fontSize: "0.72rem", background: T.green + "18", border: `1px solid ${T.green}33`, borderRadius: "20px", padding: "3px 10px" }}>📋 análises futebol →</Link>
-        <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.yellow }}>🟨 Cartões</h1>
+        <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.teal }}>⛳ Escanteios</h1>
         <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: T.textMid }}>{filtered.length} oportunidades</span>
       </div>
 
         {/* Tabs principais */}
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.2rem", borderBottom: `1px solid ${T.border}`, paddingBottom: "0.8rem" }}>
-        {[["opps","🃏 Cartões"],["history","📊 Histórico de Acertos"]].map(([tab, label]) => (
-          <button key={tab} onClick={() => { setActiveTab(tab); if(tab==="history") fetchHistory("cartoes"); }} style={{
+        {[["opps","⛳ Escanteios"],["history","📊 Histórico de Acertos"]].map(([tab, label]) => (
+          <button key={tab} onClick={() => { setActiveTab(tab); if(tab==="history") fetchHistory("escanteios"); }} style={{
             background: activeTab===tab ? T.green+"22" : "transparent",
             color: activeTab===tab ? T.green : T.textMid,
             border: `1px solid ${activeTab===tab ? T.green : T.border}`,
@@ -229,7 +206,14 @@ export default function CardsOpportunitiesPage({ initialData }) {
           }}>{label}</button>
         ))}
       </div>
-          {historyData && (
+          {historyData && historyData.resumo.total === 0 && (
+            <div style={{ background: T.surfaceHi, borderRadius: "10px", padding: "1.5rem", borderLeft: "3px solid #F5C518", textAlign: "center" }}>
+              <div style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>⚙️</div>
+              <div style={{ color: T.text, fontWeight: 700, marginBottom: "0.4rem" }}>Histórico em construção</div>
+              <div style={{ color: T.textMid, fontSize: "0.78rem" }}>Estamos coletando dados de escanteios dos jogos recentes. O histórico estará disponível em breve.</div>
+            </div>
+          )}
+          {historyData && historyData.resumo.total > 0 && (
             <>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "0.8rem", marginBottom: "1.5rem" }}>
                 {[
@@ -283,18 +267,17 @@ export default function CardsOpportunitiesPage({ initialData }) {
 
       {activeTab === "opps" && <>
       {/* Introdução */}
-        <div style={{ background: T.surfaceHi, borderRadius: "10px", padding: "1rem 1.2rem", marginBottom: "1.5rem", borderLeft: `3px solid ${T.yellow}` }}>
+        <div style={{ background: T.surfaceHi, borderRadius: "10px", padding: "1rem 1.2rem", marginBottom: "1.5rem", borderLeft: "3px solid #14B8A6" }}>
           <p style={{ margin: 0, fontSize: "0.78rem", color: T.textMid, lineHeight: 1.7 }}>
-            Oportunidades de cartões calculadas com base no <strong style={{ color: T.text }}>histórico dos últimos 15 jogos</strong> de cada time, usando distribuição de Poisson com peso exponencial. Mercados: Over/Under 3.5 e Over/Under 4.5 cartões por partida.
+            Oportunidades de escanteios calculadas com base no <strong style={{ color: T.text }}>histórico dos últimos 15 jogos</strong> de cada time, usando distribuição de Poisson com peso exponencial. Mercados: Over/Under 8.5 e Over/Under 10.5 escanteios por partida.
           </p>
         </div>
-            {/* Botões de mercado — filtro local */}
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.2rem" }}>
-        {CARDS_MARKETS.map(m => (
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.2rem" }}>
+        {CORNERS_MARKETS.map(m => (
           <button key={m.key} onClick={() => setMarket(m.key)} style={{
-            background: market === m.key ? T.yellow : T.surface,
-            color:      market === m.key ? "#000"   : T.textMid,
-            border: `1px solid ${market === m.key ? T.yellow : T.border}`,
+            background: market === m.key ? T.teal : T.surface,
+            color:      market === m.key ? "#000" : T.textMid,
+            border: `1px solid ${market === m.key ? T.teal : T.border}`,
             borderRadius: "20px", padding: "0.35rem 0.9rem",
             fontSize: "0.75rem", fontFamily: T.font, cursor: "pointer",
             fontWeight: market === m.key ? 700 : 400, transition: "all 0.15s",
@@ -302,7 +285,6 @@ export default function CardsOpportunitiesPage({ initialData }) {
         ))}
       </div>
 
-      {/* Filtros secundários */}
       <div style={{ display: "flex", gap: "0.6rem", marginBottom: "1.5rem", flexWrap: "wrap", alignItems: "flex-end" }}>
         <div>
           <div style={{ fontSize: "0.62rem", color: T.textMid, marginBottom: "0.25rem", textTransform: "uppercase" }}>Data</div>
@@ -336,12 +318,13 @@ export default function CardsOpportunitiesPage({ initialData }) {
 
       {!loading && filtered.length === 0 && (
         <div style={{ textAlign: "center", color: T.textMid, padding: "3rem", fontSize: "0.85rem" }}>
-          Nenhuma oportunidade encontrada. Tente ajustar os filtros.
+          Nenhuma oportunidade encontrada.<br />
+          <span style={{ fontSize: "0.78rem" }}>Execute a ingestão de escanteios primeiro.</span>
         </div>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
-        {filtered.map((item, i) => <CardOppCard key={`${item.match_id}-${item.market}-${i}`} item={item} index={(1 + i) % 10} />)}
+        {filtered.map((item, i) => <CornerCard key={`${item.match_id}-${item.market}-${i}`} item={item} index={(2 + i) % 10} />)}
       </div>
     </>
     }

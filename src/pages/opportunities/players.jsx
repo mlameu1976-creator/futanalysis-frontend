@@ -82,17 +82,18 @@ function PlayerCard({ item, index = 0 }) {
           <span style={{ fontSize: "0.95rem", fontWeight: 700, color: probColor(item.confidence) }}>{item.confidence?.toFixed(1)}%</span>
         </div>
         <ProbBar value={item.confidence || 0} />
-        <AffiliateCTA index={index} />
+        <AffiliateCTA index={index} bookmaker={item.bookmaker} />
       </div>
     </div>
   );
 }
 
 export async function getStaticProps() {
+  const API_INTERNAL = process.env.API_INTERNAL_URL || "http://localhost:8000";
   let initialData = [];
   try {
     const params = new URLSearchParams({ min_confidence: "55", limit: 1000 });
-    const res = await fetch(`${API}/player-opportunities?${params}`);
+    const res = await fetch(`${API_INTERNAL}/player-opportunities?${params}`);
     if (res.ok) {
       const json = await res.json();
       initialData = json.opportunities || [];
@@ -119,7 +120,7 @@ export default function PlayersOpportunities({ initialData }) {
     setLoading(true); setError(null);
     try {
       const params = new URLSearchParams({ min_confidence: minConf, limit: 1000 });
-      const res = await fetch(`${API}/player-opportunities?${params}`);
+      const res = await fetch(`${API_INTERNAL}/player-opportunities?${params}`);
       if (!res.ok) throw new Error(`Erro ${res.status}`);
       const json = await res.json();
       setAllData(json.opportunities || []);

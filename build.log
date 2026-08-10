@@ -1,0 +1,65 @@
+nohup: ignoring input
+
+> frontend@0.1.0 build
+> next build
+
+▲ Next.js 16.1.4 (Turbopack)
+- Environments: .env.local
+
+  Running TypeScript ...
+  Creating an optimized production build ...
+✓ Compiled successfully in 92s
+  Collecting page data using 1 worker ...
+  Generating static pages using 1 worker (0/33) ...
+  Generating static pages using 1 worker (8/33) 
+  Generating static pages using 1 worker (16/33) 
+Warning: data for page "/nfl" is 156 kB which exceeds the threshold of 128 kB, this amount of data can reduce performance.
+See more info here: https://nextjs.org/docs/messages/large-page-data
+  Generating static pages using 1 worker (24/33) 
+✓ Generating static pages using 1 worker (33/33) in 70s
+  Finalizing page optimization ...
+
+Route (pages)                                              Revalidate  Expire
+┌ ○ / (1287 ms)
+├   /_app
+├ ○ /404
+├ ○ /admin (1600 ms)
+├ ƒ /analises/[esporte]
+├ ƒ /analises/hoje
+├ ƒ /api/banner
+├ ○ /blog (1597 ms)
+├ ○ /blog/btts-ambas-marcam-guia-completo (1598 ms)
+├ ○ /blog/como-apostar-cartoes-amarelos-futebol (1597 ms)
+├ ○ /blog/como-funciona-modelo-dixon-coles (1514 ms)
+├ ○ /blog/como-usar-over-under-futebol (1514 ms)
+├ ○ /blog/guia-apostas-escanteios-futebol (1514 ms)
+├ ○ /blog/o-que-e-xg-expected-goals (1298 ms)
+├ ○ /cards (1285 ms)
+├ ○ /dashboard (1513 ms)
+├ ○ /login (1297 ms)
+├ ● /mlb (52701 ms)                                                5m      1y
+├ ● /nba (608 ms)                                                  5m      1y
+├ ● /nfl (57299 ms)                                                5m      1y
+├ ● /nhl (918 ms)                                                  5m      1y
+├ ○ /opportunities (1281 ms)
+├ ○ /opportunities/[fixture_id] (1283 ms)
+├ ● /opportunities/cards (9585 ms)                                 5m      1y
+├ ● /opportunities/corners (9988 ms)                               5m      1y
+├ ● /opportunities/football (9587 ms)                              5m      1y
+├ ○ /opportunities/live (1281 ms)
+├ ● /opportunities/players (3205 ms)                               5m      1y
+├ ● /opportunities/shots (5488 ms)                                 5m      1y
+├ ○ /performance (1189 ms)
+├ ○ /prediction (1189 ms)
+├ ○ /privacidade (1281 ms)
+├ ○ /rankings (1189 ms)
+├ ○ /register (1095 ms)
+├ ○ /sobre (1095 ms)
+└ ○ /termos (1094 ms)
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+

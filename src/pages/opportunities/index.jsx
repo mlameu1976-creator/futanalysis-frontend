@@ -83,6 +83,14 @@ const MARKETS = [
     markets: ["HOME WIN", "AWAY WIN", "OVER 7.5 RUNS", "UNDER 8.5 RUNS", "OVER 9.5 RUNS"],
   },
   {
+    href:    "/cavalos",
+    icon:    "🐎",
+    label:   "Cavalos",
+    accent:  "#8B4513",
+    desc:    "Corridas UK · IRE · FR · Candidatos ao Lay · Form · Rating oficial",
+    markets: ["LAY 85%+", "LAY 75%+", "LAY 65%+"],
+  },
+  {
     href:    "/nfl",
     icon:    "🏈",
     label:   "NFL",
@@ -237,7 +245,7 @@ export default function OpportunitiesHub() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem", flexWrap: "wrap" }}>
             <span style={{ background: "#fff", color: "#dc2626", fontWeight: 900, fontSize: "1rem", padding: "3px 10px", borderRadius: "4px" }}>+18</span>
             <span style={{ color: "#fff", fontWeight: 700, fontSize: "0.85rem" }}>PROIBIDO PARA MENORES DE 18 ANOS</span>
-            <span style={{ color: "#fca5a5", fontSize: "0.8rem" }}>O jogo pode causar dependencia - jogue com responsabilidade</span>
+            <span style={{ color: "#fca5a5", fontSize: "0.8rem" }}>Ministério da Fazenda adverte: Apostar pode causar dependência</span>
           </div>
         </div>
         <div style={{ background: "#1e293b", padding: "12px 24px", textAlign: "center", borderTop: "1px solid #f59e0b" }}>

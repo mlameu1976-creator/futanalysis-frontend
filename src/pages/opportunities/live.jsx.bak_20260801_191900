@@ -357,11 +357,6 @@ function MatchCard({ match, index = 0 }) {
                   <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     <span style={{ fontSize: "0.65rem", padding: "2px 8px", background: color + "18", color, border: `1px solid ${color}33`, borderRadius: "20px" }}>{label}</span>
                     <TrendBadge delta={opp.delta} />
-                    {opp.value_pct > 0 && (
-                      <span style={{ fontSize: "0.62rem", padding: "2px 8px", background: T.green + "22", color: T.green, border: `1px solid ${T.green}55`, borderRadius: "20px", fontWeight: 700 }}>
-                        💰 Valor +{opp.value_pct.toFixed(1)}%
-                      </span>
-                    )}
                   </div>
                   <span style={{ fontSize: "0.95rem", fontWeight: 700, color: probColor(opp.probability) }}>
                     {opp.probability.toFixed(1)}%
@@ -374,25 +369,10 @@ function MatchCard({ match, index = 0 }) {
                     {opp.detail && <span style={{ fontSize: "0.6rem", color: T.textDim }}>{opp.detail}</span>}
                   </div>
                 )}
-                {opp.real_odd && (
-                  <div style={{ marginTop: "0.25rem", fontSize: "0.6rem", color: T.textDim }}>
-                    Odd justa: <strong style={{ color: T.textMid }}>{opp.fair_odd}</strong> · Odd real ({opp.bookmaker}): <strong style={{ color: opp.value_pct > 0 ? T.green : T.textMid }}>{opp.real_odd}</strong>
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
-
-        <Link href={`/jogo/${match.fixture_id}?from=live`} style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
-          marginTop: "0.7rem", padding: "0.5rem", borderRadius: "8px",
-          background: T.surfaceHi, border: `1px solid ${T.border}`,
-          color: T.blue, fontSize: "0.75rem", fontWeight: 700, textDecoration: "none",
-        }}>
-          Ver análise completa →
-        </Link>
-
         <AffiliateCTA index={index} />
       </div>
     </div>
